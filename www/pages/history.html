@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Historique - BudgetApp</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <h1>BudgetApp</h1>
+    <ul>
+        <li><a href="../index.html">Accueil</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="add.html">Ajouter</a></li>
+        <li><a class="active" href="history.html">Historique</a></li>
+        <li><a href="stats.html">Stats</a></li>
+        <li><a href="budget-previsionnel.html">Prévisionnel</a></li>
+
+    </ul>
+</nav>
+
+<main class="container">
+    <section class="card" style="padding-bottom:18px;">
+        <h2 style="margin-top:0">Historique des opérations</h2>
+
+        <div class="filters" style="margin-top:8px;">
+            <select id="filterType"><option value="all">Tous</option><option value="recette">Recette</option><option value="depense">Dépense</option></select>
+            <select id="filterCat"><option value="all">Toutes catégories</option></select>
+            <input id="searchInput" placeholder="Rechercher (catégorie, description)" style="padding:10px;border-radius:10px;border:1px solid #e5e7eb;flex:1">
+            <button id="refreshBtn" class="btn btn-ghost">Actualiser</button>
+        </div>
+
+        <div id="historyList" style="margin-top:14px;display:flex;flex-direction:column;gap:12px"></div>
+    </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script src="../firebase.js"></script>
+<script src="../app.js"></script>
+
+<script>
+    (function(){
+      const listEl = document.getElementById('historyList');
+      const catFilter = document.getElementById('filterCat');
+      const typeFilter = document.getElementById('filterType');
+      const searchInput = document.getElementById('searchInput');
+
+      let allDocs = [];
+
+      function render(docs){
+        listEl.innerHTML = '';
+        docs.forEach(({id, data})=>{
+          const t = data;
+          const div = document.createElement('div');
+          div.className='transaction';
+          div.innerHTML = `
+            <div class="tx-left">
+              <div style="display:flex;gap:12px;align-items:center">
+                <div class="badge ${t.type}">${t.type}</div>
+                <strong>${t.categorie}</strong>
+              </div>
+              <div class="tx-meta">${t.date} · ${t.description || ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="text-align:right"><div style="font-weight:700">${t.montant} FCFA</div></div>
+              <div class="tx-actions">
+                <button class="btn btn-ghost" data-id="${id}" data-action="edit">✏️</button>
+                <button class="btn btn-ghost" data-id="${id}" data-action="delete">❌</button>
+              </div>
+            </div>
+          `;
+          listEl.appendChild(div);
+        });
+      }
+
+      async function loadAll(){
+        const snapshot = await db.collection('transactions').orderBy('date','desc').get();
+        const docs = [];
+        const cats = new Set();
+        snapshot.forEach(doc=>{
+          docs.push({id:doc.id, data:doc.data()});
+          cats.add((doc.data().categorie || 'Autre').trim());
+        });
+        allDocs = docs;
+        catFilter.innerHTML = '<option value="all">Toutes catégories</option>';
+        Array.from(cats).sort().forEach(c=>{
+          const o = document.createElement('option'); o.value=c; o.textContent=c;
+          catFilter.appendChild(o);
+        });
+        render(docs);
+      }
+
+      function applyFilters(){
+        const type = typeFilter.value;
+        const cat = catFilter.value;
+        const q = searchInput.value.trim().toLowerCase();
+
+        const filtered = allDocs.filter(d=>{
+          const t = d.data;
+          if(type!=='all' && t.type !== type) return false;
+          if(cat!=='all' && (t.categorie||'').trim() !== cat) return false;
+          if(q){
+            return (t.categorie||'').toLowerCase().includes(q) || (t.description||'').toLowerCase().includes(q);
+          }
+          return true;
+        });
+        render(filtered);
+      }
+
+      listEl.addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button');
+        if(!btn) return;
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        if(action === 'delete'){
+          if(!confirm('Supprimer cette opération ?')) return;
+          try{ await db.collection('transactions').doc(id).delete(); loadAll(); }
+          catch(err){ alert('Erreur suppression'); console.error(err); }
+        } else if(action === 'edit'){
+          const doc = allDocs.find(x=>x.id===id);
+          if(!doc) return;
+          const t = doc.data;
+          const newMontant = prompt('Montant', t.montant);
+          const newDesc = prompt('Description', t.description || '');
+          if(newMontant === null) return;
+          try{
+            await db.collection('transactions').doc(id).update({
+              montant: Number(newMontant),
+              description: newDesc
+            });
+            loadAll();
+          }catch(err){console.error(err); alert('Erreur mise à jour');}
+        }
+      });
+
+      document.getElementById('refreshBtn').addEventListener('click', ()=>loadAll());
+      typeFilter.addEventListener('change', applyFilters);
+      catFilter.addEventListener('change', applyFilters);
+      searchInput.addEventListener('input', applyFilters);
+
+      loadAll();
+    })();
+</script>
+</body>
+</html>

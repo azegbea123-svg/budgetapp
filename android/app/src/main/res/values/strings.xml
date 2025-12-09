@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">budgetapp</string>
+    <string name="title_activity_main">budgetapp</string>
+    <string name="package_name">com.eeg.budgetapp</string>
+    <string name="custom_url_scheme">com.eeg.budgetapp</string>
+</resources>

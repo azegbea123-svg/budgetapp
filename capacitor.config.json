@@ -1,0 +1,6 @@
+{
+  "appId": "com.eeg.budgetapp",
+  "appName": "budgetapp",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
