@@ -18,35 +18,42 @@
     </ul>
 </nav>
 
-<main class="container">
-    <section class="card" style="max-width:820px;margin:0 auto;">
-        <h2 style="margin-top:0">Budget prévisionnel du mois</h2>
+<main class="container" style="max-width:900px;margin:0 auto;">
+    <section class="card">
+        <h2 style="margin-top:0">Budget Prévisionnel</h2>
 
-        <form id="budgetForm" style="margin-top:12px">
-            <div style="display:flex;gap:12px;flex-wrap:wrap">
-                <div class="form-group" style="flex:1 1 300px">
-                    <label for="mois">Mois concerné</label>
-                    <input type="month" id="mois" required>
-                </div>
+        <form id="budgetForm">
 
-                <div class="form-group" style="flex:1 1 300px">
-                    <label for="budgetTotal">Budget total prévu</label>
-                    <input type="number" id="budgetTotal" placeholder="Ex: 150000" required>
+            <!-- MOIS -->
+            <div class="form-group" style="max-width:320px">
+                <label for="mois">Mois concerné</label>
+                <input type="month" id="mois" required>
+            </div>
+
+            <!-- TOTAL AUTOMATIQUE -->
+            <div class="form-group" style="margin-top:12px">
+                <label>Total du budget (automatique)</label>
+                <div id="affTotal"
+                     style="padding:12px;background:#f3f4f6;border-radius:8px;font-weight:bold;font-size:18px;">
+                    0 FCFA
                 </div>
             </div>
 
-            <h3 style="width:100%;margin-top:8px">Catégories prévues</h3>
+            <!-- CATÉGORIES -->
+            <div id="listeCategories" style="margin-top:8px; padding-top:14px;">
+            </div>
 
-            <div id="listeCategories" style="width:100%;margin-top:8px"></div>
-
-            <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+            <!-- BOUTONS -->
+            <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap">
                 <button type="button" id="addCat" class="btn btn-ghost">+ Ajouter une catégorie</button>
                 <button type="submit" class="btn btn-primary">Enregistrer le budget</button>
             </div>
+
         </form>
     </section>
 </main>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
