@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Stats - BudgetApp</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <h1>BudgetApp</h1>
+    <ul>
+        <li><a href="../index.html">Accueil</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="add.html">Ajouter</a></li>
+        <li><a href="history.html">Historique</a></li>
+        <li><a class="active" href="stats.html">Stats</a></li>
+        <li><a href="budget-previsionnel.html">Prévisionnel</a></li>
+    </ul>
+</nav>
+
+<main class="container">
+    <h2 class="page-title">Statistiques & Répartition</h2>
+
+    <div class="row">
+        <div class="card" style="flex:1 1 420px;">
+            <h3 style="margin-top:0">Top catégories (dépenses)</h3>
+            <div id="topCats" class="list-stats"></div>
+        </div>
+
+        <div class="card" style="flex:1 1 420px;min-height:260px;">
+            <h3 style="margin-top:0">Répartition des dépenses</h3>
+            <canvas id="statsPie" style="width:100%;height:220px"></canvas>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+        <h3 style="margin-top:0">Exporter les données</h3>
+        <button id="exportCSV" class="btn btn-primary">Exporter CSV</button>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script src="../firebase.js"></script>
+<script src="../categories.js"></script>
+<script src="../app.js"></script>
+
+<script>
+    (async function() {
+      const snapshot = await db.collection('transactions').get();
+      const cats = {};
+      let totalDep = 0;
+      const rows = [];
+      snapshot.forEach(doc=>{
+        const t = doc.data();
+        rows.push({...t, id:doc.id});
+        if(t.type === 'depense'){
+          cats[t.categorie] = (cats[t.categorie]||0) + Number(t.montant||0);
+          totalDep += Number(t.montant||0);
+        }
+      });
+
+      const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const topDiv = document.getElementById('topCats'); topDiv.innerHTML = '';
+      sorted.forEach(([name,val])=>{
+        const p = document.createElement('div'); p.style.display='flex';p.style.justifyContent='space-between';p.style.padding='8px 6px';
+        p.innerHTML = `<strong>${name}</strong><span>${val} FCFA</span><small style="color:var(--muted)">${((val/totalDep)*100).toFixed(1)}%</small>`;
+        topDiv.appendChild(p);
+      });
+
+      const labels = Object.keys(cats);
+      const data = Object.values(cats);
+      const ctx = document.getElementById('statsPie').getContext('2d');
+      new Chart(ctx, {type:'doughnut', data:{labels, datasets:[{data}]}, options:{responsive:true,maintainAspectRatio:false}});
+
+      document.getElementById('exportCSV').addEventListener('click', ()=>{
+        const header = ['id','type','categorie','montant','date','description'].join(',');
+        const csvRows = rows.map(r => {
+          return [r.id, r.type, `"${(r.categorie||'').replace(/"/g,'""')}"`, r.montant, r.date, `"${(r.description||'').replace(/"/g,'""')}"`].join(',');
+        });
+        const csv = [header, ...csvRows].join('\n');
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'budgetapp_export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      });
+    })();
+</script>
+</body>
+</html>

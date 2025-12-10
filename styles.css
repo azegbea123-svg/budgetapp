@@ -1,0 +1,68 @@
+/* styles.css - refonte professionnelle, responsive, occupe ~90% hauteur */
+
+:root{
+  --bg:#eef1f7;
+  --card:#ffffff;
+  --primary:#106eea;
+  --primary-dark:#0a4ecf;
+  --success:#16a34a;
+  --danger:#dc2626;
+  --muted:#6b7280;
+}
+
+/* Global */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, Arial;background:var(--bg);color:#111827;-webkit-font-smoothing:antialiased}
+body{min-height:90vh;display:flex;flex-direction:column}
+
+/* Navbar */
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:linear-gradient(90deg,var(--primary),var(--primary-dark));color:#fff;position:sticky;top:0;z-index:100}
+.navbar h1{margin:0;font-size:20px;font-weight:700}
+.navbar ul{display:flex;gap:14px;list-style:none;margin:0;padding:0}
+.navbar a{color:white;text-decoration:none;padding:8px 12px;border-radius:8px;font-weight:600}
+.navbar a:hover,.navbar a.active{background:rgba(255,255,255,0.14)}
+
+/* Container */
+.container{width:90%;max-width:1200px;margin:22px auto;flex:1}
+
+/* Grid & cards */
+.row{display:flex;gap:22px;flex-wrap:wrap}
+.card{background:var(--card);border-radius:14px;padding:18px;flex:1 1 320px;box-shadow:0 6px 20px rgba(0,0,0,0.04);transition:0.2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,0.06)}
+
+/* KPIs */
+.kpi{display:flex;justify-content:space-between;align-items:center}
+.kpi h3{margin:0;font-size:15px;color:var(--muted)}
+.kpi .value{font-size:22px;font-weight:700}
+
+/* Forms */
+form{display:flex;flex-wrap:wrap;gap:16px}
+.form-group{flex:1 1 260px;display:flex;flex-direction:column;gap:6px}
+label{font-size:14px;color:var(--muted);font-weight:600}
+input,select,textarea{padding:12px;border-radius:10px;border:1px solid #e5e7eb;background:white;font-size:15px}
+textarea{min-height:110px;resize:vertical}
+
+/* Buttons */
+.btn{padding:12px 18px;border-radius:12px;border:none;font-weight:700;cursor:pointer}
+.btn-primary{background:var(--primary);color:white}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-ghost{background:transparent;border:1px solid #d1d5db;padding:10px}
+
+/* Transactions */
+.transaction{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:14px;border-radius:12px;border:1px solid #e5e7eb;background:white}
+.tx-meta{font-size:13px;color:var(--muted)}
+.badge{padding:6px 12px;border-radius:10px;font-weight:700;font-size:13px}
+.badge.recette{background:rgba(22,163,74,0.12);color:var(--success)}
+.badge.depense{background:rgba(220,38,38,0.10);color:var(--danger)}
+
+/* Helper */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.list-stats .stat-line{display:flex;justify-content:space-between;padding:10px 8px;border-bottom:1px solid #f3f4f6}
+.page-title{font-size:22px;margin:6px 0 18px}
+
+/* smaller screens */
+@media (max-width:900px){
+  .row{flex-direction:column}
+  .container{width:95%}
+  .navbar h1{font-size:16px}
+}

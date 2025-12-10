@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>BudgetApp - Accueil</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Hero quick styles (kept inline for speed) */
+        .hero{width:100%;min-height:70vh;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px 20px;background:linear-gradient(135deg,#106eea,#0a4ecf);color:white;border-radius:0 0 40px 40px;box-shadow:0 8px 20px rgba(0,0,0,0.15)}
+        .hero h1{font-size:32px;margin:0 0 14px;font-weight:800}
+        .hero p{font-size:17px;max-width:600px;opacity:0.95}
+        .hero-buttons{display:flex;gap:16px;margin-top:26px;flex-wrap:wrap;justify-content:center}
+        .hero-buttons a{background:white;color:#0a4ecf;padding:12px 20px;border-radius:12px;font-weight:700;text-decoration:none;box-shadow:0 4px 10px rgba(0,0,0,0.1)}
+        .hero-buttons a.ghost{background:transparent;border:2px solid white;color:white}
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <h1>BudgetApp</h1>
+    <ul>
+        <li><a class="active" href="index.html">Accueil</a></li>
+        <li><a href="pages/dashboard.html">Dashboard</a></li>
+        <li><a href="pages/add.html">Ajouter</a></li>
+        <li><a href="pages/history.html">Historique</a></li>
+        <li><a href="pages/stats.html">Stats</a></li>
+        <li><a href="pages/budget-previsionnel.html">Prévisionnel</a></li>
+    </ul>
+</nav>
+
+<section class="hero">
+    <h1>Prenez le contrôle de votre argent</h1>
+    <p>BudgetApp vous aide à suivre vos dépenses, planifier votre budget prévisionnel et visualiser votre trésorerie en temps réel.</p>
+    <div class="hero-buttons">
+        <a href="pages/add.html">Ajouter une opération</a>
+        <a href="pages/budget-previsionnel.html" class="ghost">Définir le prévisionnel</a>
+    </div>
+</section>
+
+<section class="features" style="margin-bottom:40px">
+    <h2 style="text-align:center">Pourquoi utiliser BudgetApp ?</h2>
+    <div class="features-grid" style="max-width:1100px;margin:16px auto 0;">
+        <div class="feature-card"><h3>📊 Dashboard intelligent</h3><p>Suivez vos dépenses et votre solde en temps réel.</p></div>
+        <div class="feature-card"><h3>📅 Budget prévisionnel</h3><p>Planifiez votre mois et comparez prévu vs réel.</p></div>
+        <div class="feature-card"><h3>📈 Statistiques</h3><p>Top catégories, historiques et export.</p></div>
+    </div>
+</section>
+
+<!-- firebase + core scripts -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="firebase.js"></script>
+
+<!-- local shared scripts -->
+<script src="categories.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Dashboard - BudgetApp</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<nav class="navbar">
+    <h1>BudgetApp</h1>
+    <ul>
+        <li><a href="../index.html">Accueil</a></li>
+        <li><a class="active" href="dashboard.html">Dashboard</a></li>
+        <li><a href="add.html">Ajouter</a></li>
+        <li><a href="history.html">Historique</a></li>
+        <li><a href="stats.html">Stats</a></li>
+        <li><a href="budget-previsionnel.html">Prévisionnel</a></li>
+    </ul>
+</nav>
+
+<main class="container">
+    <div class="row">
+        <section class="card">
+            <h2 style="margin-top:0">Solde & Totaux</h2>
+            <div class="kpi" style="margin-top:12px;">
+                <div>
+                    <h3>Total Recettes (mois)</h3>
+                    <div class="value" id="totalRecette">0 FCFA</div>
+                </div>
+                <div>
+                    <h3>Total Dépenses (mois)</h3>
+                    <div class="value" id="totalDepense">0 FCFA</div>
+                </div>
+                <div>
+                    <h3>Solde</h3>
+                    <div class="value" id="soldeActuel">0 FCFA</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 style="margin-top:0">Graphiques rapides</h2>
+            <canvas id="pieChart" style="max-height:260px"></canvas>
+            <canvas id="barChart" style="max-height:260px;margin-top:12px"></canvas>
+        </section>
+    </div>
+
+    <section class="card" style="margin-top:18px">
+        <h3 style="margin-top:0">Prévisionnel actif</h3>
+        <div id="comparaison" style="display:flex;flex-direction:column;gap:10px;padding-top:8px">
+            <p style="color:var(--muted)">Chargement des données prévisionnelles…</p>
+        </div>
+        <div style="margin-top:12px">
+            <a href="budget-previsionnel.html" class="btn btn-primary">Définir / Modifier le prévisionnel</a>
+        </div>
+    </section>
+
+    <section class="card" style="margin-top:18px">
+        <h3 style="margin-top:0">Filtrer par mois / année</h3>
+        <div class="filters" style="margin-top:8px;">
+            <select id="filterMonth">
+                <option value="all">Tous les mois</option>
+                <option value="1">Janvier</option><option value="2">Février</option><option value="3">Mars</option>
+                <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+                <option value="7">Juillet</option><option value="8">Août</option><option value="9">Septembre</option>
+                <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">Décembre</option>
+            </select>
+
+            <select id="filterYear"></select>
+            <button id="applyFilter" class="btn btn-primary">Appliquer</button>
+        </div>
+    </section>
+
+    <!-- Optional quick list -->
+    <section class="card" style="margin-top:18px">
+        <h3 style="margin-top:0">Dernières opérations</h3>
+        <div id="transactionList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+<script src="../firebase.js"></script>
+<script src="../categories.js"></script>
+<script src="../app.js"></script>
+
+<script>
+    (function(){
+      const pieEl = document.getElementById('pieChart')?.getContext && document.getElementById('pieChart').getContext('2d');
+      const barEl = document.getElementById('barChart')?.getContext && document.getElementById('barChart').getContext('2d');
+      let pieChart, barChart;
+
+      const currentYear = new Date().getFullYear();
+      const yearSelect = document.getElementById('filterYear');
+      for(let y=currentYear; y>=currentYear-5; y--){
+        const o = document.createElement('option'); o.value=y; o.textContent=y;
+        yearSelect.appendChild(o);
+      }
+      yearSelect.value = currentYear;
+
+      async function loadAndRender(month='all', year=currentYear){
+        const snapshot = await db.collection('transactions').get();
+
+        const categories = {};
+        let totalRec = 0, totalDep = 0;
+        const monthly = {};
+
+        snapshot.forEach(doc=>{
+          const t = doc.data();
+          const txMonth = t.month || (new Date(t.date)).getMonth()+1;
+          const txYear = t.year || (new Date(t.date)).getFullYear();
+          if(year && String(txYear) !== String(year)) return;
+          if(month !== 'all' && String(txMonth) !== String(month)) return;
+
+          if(t.type === 'recette' || t.type === 'income') totalRec += Number(t.montant || 0);
+          if(t.type === 'depense' || t.type === 'expense') totalDep += Number(t.montant || 0);
+
+          if(t.type === 'depense'){
+            const c = t.categorie || 'Autre';
+            categories[c] = (categories[c]||0)+Number(t.montant||0);
+          }
+
+          const mKey = `${txYear}-${txMonth}`;
+          monthly[mKey] = monthly[mKey] || {rec:0, dep:0};
+          if(t.type === 'recette') monthly[mKey].rec += Number(t.montant||0);
+          if(t.type === 'depense') monthly[mKey].dep += Number(t.montant||0);
+        });
+
+        document.getElementById('totalRecette').textContent = totalRec + ' FCFA';
+        document.getElementById('totalDepense').textContent = totalDep + ' FCFA';
+        document.getElementById('soldeActuel').textContent = (totalRec - totalDep) + ' FCFA';
+
+        // pie
+        const catLabels = Object.keys(categories);
+        const catValues = catLabels.map(l=>categories[l]);
+        if(pieChart) pieChart.destroy();
+        if(pieEl) pieChart = new Chart(pieEl, {
+          type:'pie',
+          data:{labels:catLabels, datasets:[{data:catValues}]},
+          options:{responsive:true}
+        });
+
+        // bar monthly (last 6 months)
+        const sortedKeys = Object.keys(monthly).sort();
+        const lastKeys = sortedKeys.slice(-6);
+        const labels = lastKeys.map(k=>k);
+        const recData = lastKeys.map(k=>monthly[k].rec);
+        const depData = lastKeys.map(k=>monthly[k].dep);
+        if(barChart) barChart.destroy();
+        if(barEl) barChart = new Chart(barEl, {
+          type:'bar',
+          data:{
+            labels,
+            datasets:[
+              {label:'Recettes', data:recData, stack:'s1'},
+              {label:'Dépenses', data:depData, stack:'s1'}
+            ]
+          },
+          options:{responsive:true, scales:{y:{beginAtZero:true}}}
+        });
+
+        // load previsionnel for current month
+        const moisActuel = new Date().toISOString().slice(0,7);
+        try {
+          const previ = await chargerBudgetPrevisionnel(moisActuel);
+          const reel = await calculerBudgetReel(moisActuel);
+          if(previ) afficherComparaison(previ, reel);
+          else {
+            const zone = document.getElementById('comparaison'); if(zone) zone.innerHTML = "<p>Aucun budget prévisionnel pour ce mois.</p>";
+          }
+        } catch (e) { console.warn(e); }
+      }
+
+      document.getElementById('applyFilter').addEventListener('click', ()=>{
+        const month = document.getElementById('filterMonth').value;
+        const year = document.getElementById('filterYear').value;
+        loadAndRender(month, year);
+      });
+
+      loadAndRender('all', currentYear);
+    })();
+</script>
+</body>
+</html>
