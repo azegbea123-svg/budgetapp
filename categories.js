@@ -16,11 +16,5 @@ const CATEGORIES = [
   "Éducation",
   "Vêtements",
   "Charges familiales",
-  "Emprunt",
-  "Nourriture",
-  "Reparation voiture",
-  "Vidange voiture",
-  "Gaz",
-  "Carburant",
   "Autre"
 ];
