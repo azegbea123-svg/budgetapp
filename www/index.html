@@ -28,6 +28,26 @@
     </ul>
 </nav>
 
+<div id="userBox" style="display:none;align-items:center;gap:12px;">
+    <div>
+        <strong id="userEmail"></strong>
+        <div style="font-size:13px;color:#666">Compte connecté</div>
+    </div>
+
+    <button id="logoutBtn"
+            style="
+      padding:8px 12px;
+      border:none;
+      border-radius:6px;
+      background:#e74c3c;
+      color:white;
+      font-weight:600;
+      cursor:pointer;">
+        Déconnexion
+    </button>
+</div>
+
+
 <section class="hero">
     <h1>Prenez le contrôle de votre argent</h1>
     <p>BudgetApp vous aide à suivre vos dépenses, planifier votre budget prévisionnel et visualiser votre trésorerie en temps réel.</p>
@@ -48,11 +68,36 @@
 
 <!-- firebase + core scripts -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <script src="firebase.js"></script>
 
 <!-- local shared scripts -->
 <script src="categories.js"></script>
 <script src="app.js"></script>
+
+<script>
+    firebase.auth().onAuthStateChanged(user => {
+
+   // ❌ Pas connecté → retour auth
+   if (!user) {
+     window.location.href = "pages/auth.html";
+     return;
+   }
+
+   // ✅ Connecté → afficher infos
+   document.getElementById("userBox").style.display = "flex";
+   document.getElementById("userEmail").textContent = user.email;
+
+   // 🔓 Déconnexion
+   document.getElementById("logoutBtn").onclick = async () => {
+     await firebase.auth().signOut();
+     window.location.href = "pages/auth.html";
+   };
+
+ });
+</script>
+
+
 </body>
 </html>

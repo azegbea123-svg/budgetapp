@@ -56,11 +56,22 @@
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="../firebase.js"></script>
 <script src="../categories.js"></script>
 <script src="../app.js"></script>
 <script src="../previsionnel.js"></script>
+
+<script>
+    console.log("PAGE ACTUELLE :", window.location.pathname);
+</script>
+
+<script>
+    firebase.auth().onAuthStateChanged(user=>{
+      if(!user) window.location.href="auth.html";
+    });
+</script>
+
 
 </body>
 </html>

@@ -1,17 +1,28 @@
-// app.js - fonctions partagées, remplissage catégories et affichages
+// app.js - fonctions partagées, catégories, transactions, prévisionnel (par utilisateur)
 
-// Vérifie que db est présent (firebase.js doit être chargé avant app.js)
+// ==========================
+// Vérification Firestore
+// ==========================
 if (typeof db === 'undefined') {
   console.warn('Firestore non initialisé. Vérifie firebase.js');
 }
 
-// ---------------------------
-// Helpers : remplir selects
-// ---------------------------
+// ==========================
+// Helper : utilisateur courant
+// ==========================
+function getCurrentUser() {
+  return new Promise(resolve => {
+    firebase.auth().onAuthStateChanged(user => resolve(user));
+  });
+}
+
+// ==========================
+// Helpers : catégories
+// ==========================
 function fillSelectWithCategories(selectEl) {
   if (!selectEl) return;
   selectEl.innerHTML = '';
-  // Option vide (si souhaité)
+
   const empty = document.createElement('option');
   empty.value = '';
   empty.textContent = '-- Choisir --';
@@ -26,41 +37,47 @@ function fillSelectWithCategories(selectEl) {
   });
 }
 
-// Remplit toutes les selects marquées .auto-cat
 function populateAllCategorySelects() {
-  document.querySelectorAll('select.auto-cat').forEach(s => fillSelectWithCategories(s));
-  // aussi selects créés dynamiquement (previsionnel rows) will use same class
+  document.querySelectorAll('select.auto-cat')
+    .forEach(s => fillSelectWithCategories(s));
 }
 
-// Appel au chargement DOM
+// ==========================
+// DOM READY
+// ==========================
 document.addEventListener('DOMContentLoaded', () => {
   populateAllCategorySelects();
 
-  // Remplit le filtre catégorie dans history si présent
   const filterCat = document.getElementById('filterCat');
   if (filterCat && typeof CATEGORIES !== 'undefined') {
     filterCat.innerHTML = '<option value="all">Toutes catégories</option>';
     CATEGORIES.forEach(c => {
-      const o = document.createElement('option'); o.value = c; o.textContent = c;
+      const o = document.createElement('option');
+      o.value = c;
+      o.textContent = c;
       filterCat.appendChild(o);
     });
   }
-
-  // Si index/show transactionList exists, let realtime display handle it (handled below)
 });
 
-// ---------------------------
-// PREVISIONNEL HELPERS (chargement)
-// ---------------------------
+// ==========================
+// PREVISIONNEL
+// ==========================
 async function chargerBudgetPrevisionnel(mois) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
   try {
     const snap = await db.collection("budgets_previsionnels")
+      .where("userId", "==", user.uid)
       .where("mois", "==", mois)
       .limit(1)
       .get();
+
     if (snap.empty) return null;
     const doc = snap.docs[0];
     return { id: doc.id, ...doc.data() };
+
   } catch (e) {
     console.error("Erreur chargement budget prévisionnel :", e);
     return null;
@@ -68,22 +85,29 @@ async function chargerBudgetPrevisionnel(mois) {
 }
 
 async function calculerBudgetReel(mois) {
+  const user = await getCurrentUser();
+  if (!user) return {};
+
   const debut = mois + "-01";
   const fin = mois + "-31";
+  let reel = {};
+
   try {
     const snap = await db.collection("transactions")
+      .where("userId", "==", user.uid)
       .where("date", ">=", debut)
       .where("date", "<=", fin)
       .get();
-    let reel = {};
+
     snap.forEach(doc => {
       const t = doc.data();
-      if (!reel[t.categorie]) reel[t.categorie] = 0;
-      reel[t.categorie] += Number(t.montant || 0);
+      reel[t.categorie] = (reel[t.categorie] || 0) + Number(t.montant || 0);
     });
+
     return reel;
+
   } catch (e) {
-    console.error("Erreur calc reel :", e);
+    console.error("Erreur calcul réel :", e);
     return {};
   }
 }
@@ -91,88 +115,103 @@ async function calculerBudgetReel(mois) {
 function afficherComparaison(previsionnel, reel) {
   const zone = document.getElementById("comparaison");
   if (!zone) return;
+
   zone.innerHTML = "";
   const cats = previsionnel.categories || {};
+
   Object.keys(cats).forEach(cat => {
     const prev = Number(cats[cat] || 0);
     const real = Number(reel[cat] || 0);
     const couleur = real > prev ? 'var(--danger)' : 'var(--success)';
     const etat = real > prev ? 'Dépassement' : 'OK';
+
     const el = document.createElement('div');
     el.style.display = 'flex';
     el.style.justifyContent = 'space-between';
-    el.style.alignItems = 'center';
     el.style.padding = '8px 6px';
+
     el.innerHTML = `
-      <div style="flex:1"><strong>${cat}</strong><div style="color:var(--muted);font-size:13px">Prévu: ${prev} FCFA</div></div>
-      <div style="text-align:right;min-width:160px">
+      <div>
+        <strong>${cat}</strong>
+        <div style="font-size:13px;color:var(--muted)">
+          Prévu : ${prev} FCFA
+        </div>
+      </div>
+      <div style="text-align:right">
         <div style="font-weight:700">${real} FCFA</div>
         <div style="color:${couleur};font-weight:700">${etat}</div>
       </div>
     `;
+
     zone.appendChild(el);
   });
 }
 
-// ---------------------------
-// CRUD Transactions
-// ---------------------------
+// ==========================
+// CRUD TRANSACTIONS (LIÉES AU USER)
+// ==========================
 async function addTransaction(data) {
-  try {
-    await db.collection('transactions').add(data);
-    console.log('Ajout OK', data);
-  } catch (err) {
-    console.error('Erreur ajout', err);
-    throw err;
-  }
+  const user = firebase.auth().currentUser;
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  await db.collection('transactions').add({
+    ...data,
+    userId: user.uid,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 
 async function updateTransaction(id, patch) {
-  try {
-    await db.collection('transactions').doc(id).update(patch);
-    console.log('Update OK', id, patch);
-  } catch (err) {
-    console.error('Erreur update', err);
-    throw err;
-  }
+  const user = firebase.auth().currentUser;
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  await db.collection('transactions').doc(id).update(patch);
 }
 
 async function deleteTransaction(id) {
-  try {
-    await db.collection('transactions').doc(id).delete();
-    console.log('Delete OK', id);
-  } catch (err) {
-    console.error('Erreur delete', err);
-    throw err;
-  }
+  const user = firebase.auth().currentUser;
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  await db.collection('transactions').doc(id).delete();
 }
 
-// ---------------------------
-// Affichage index/dashboard realtime (si transactionList present)
-// ---------------------------
-document.addEventListener('DOMContentLoaded', () => {
+// ==========================
+// DASHBOARD / INDEX (REALTIME)
+// ==========================
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) return;
+
   const list = document.getElementById('transactionList');
   if (!list) return;
 
-  db.collection('transactions').orderBy('date', 'desc').onSnapshot(snapshot => {
-    list.innerHTML = '';
-    snapshot.forEach(doc => {
-      const t = doc.data();
-      const item = document.createElement('div');
-      item.className = 'transaction';
-      item.innerHTML = `
-        <div class="tx-left">
-          <div style="display:flex;gap:10px;align-items:center">
-            <div class="badge ${t.type}">${t.type}</div>
-            <strong>${t.categorie}</strong>
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+
+
+  db.collection('transactions')
+    .where('userId', '==', user.uid)
+    .orderBy('date', 'desc')
+    .onSnapshot(snapshot => {
+
+      list.innerHTML = '';
+      snapshot.forEach(doc => {
+        const t = doc.data();
+
+        const item = document.createElement('div');
+        item.className = 'transaction';
+
+        item.innerHTML = `
+          <div class="tx-left">
+            <div style="display:flex;gap:10px;align-items:center">
+              <div class="badge ${t.type}">${t.type}</div>
+              <strong>${t.categorie}</strong>
+            </div>
+            <div class="tx-meta">${t.date} · ${t.description || ''}</div>
           </div>
-          <div class="tx-meta">${t.date} · ${t.description || ''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="text-align:right"><div style="font-weight:700">${t.montant} FCFA</div></div>
-        </div>
-      `;
-      list.appendChild(item);
+          <div style="font-weight:700">${t.montant} FCFA</div>
+        `;
+
+        list.appendChild(item);
+      });
     });
-  });
 });
